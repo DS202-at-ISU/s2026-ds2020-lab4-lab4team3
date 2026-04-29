@@ -1,0 +1,51 @@
+---
+output: github_document
+---
+
+<!-- README.md is generated from README.Rmd. Please edit the README.Rmd file -->
+#This is about read the url and install some necessary library
+```{r}
+knitr::opts_chunk$set(echo = TRUE)
+library(tidyverse)
+library(rvest)
+library(readr)
+library(Lahman)
+url <- "https://www.baseball-reference.com/awards/hof_2026.shtml"
+
+html <- read_html(url)
+tables <- html_table(html)
+data <- tables[[1]]
+```
+#Fix the column names
+```{r}
+actual_col_names <- as.character(unlist(data[1, ]))
+
+colnames(data) <- actual_col_names
+
+data <- data[-1, ]
+
+colnames(data) <- make.unique(colnames(data))
+```
+
+
+#Clean the Hall of Fame voting data
+```{r}
+hof_2026 <- data %>%
+  select(Name, Votes, `%vote`) %>%
+  mutate(
+    candidate_name = gsub("^X-", "", Name),
+    candidate_name = str_squish(candidate_name),
+    year = 2026,
+    votes = as.numeric(Votes),
+    percent_vote = readr::parse_number(`%vote`),
+    inducted = ifelse(percent_vote >= 75, "Y", "N")
+  ) %>%
+  select(candidate_name, year, votes, percent_vote, inducted)
+
+hof_2026
+```
+
+# Save the cleaned data
+```{r}
+readr::write_csv(hof_2026, "HallOfFame_2026.csv")
+```
