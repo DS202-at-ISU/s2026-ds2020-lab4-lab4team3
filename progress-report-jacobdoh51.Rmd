@@ -5,6 +5,8 @@ output: github_document
 
 # Lab report #4 - instructions
 
+------------------------------------------------------------------------
+
 Follow the instructions posted at <https://ds202-at-isu.github.io/labs.html> for the lab assignment. The work is meant to be finished during the lab time, but you have time until Monday (after Thanksgiving) to polish things.
 
 All submissions to the github repo will be automatically uploaded for grading once the due date is passed. Submit a link to your repository on Canvas (only one submission per team) to signal to the instructors that you are done with your submission.
@@ -23,7 +25,9 @@ library(Lahman)
 library(tidyverse)
 ```
 
-# Lab 4: Scraping (into) the Hall of Fame
+## Lab 4: Scraping (into) the Hall of Fame
+
+------------------------------------------------------------------------
 
 ```{r echo=FALSE, message=FALSE, warning=FALSE}
 hof <- Lahman::HallOfFame
@@ -37,3 +41,43 @@ hof %>%
   ylab("Percent of votes")
 ```
 
+## Individual Report Process
+
+------------------------------------------------------------------------
+
+```{r}
+# Baseball Reference Hall of Fame 2026 page (from lab 4 instruction)
+url <- "https://www.baseball-reference.com/awards/hof_2026.shtml"
+html <- read_html(url)
+tables <- html_table(html)
+head(tables[[1]], 3)
+
+# Hall of Fame voting table (from lab 4 instruction)
+data <- tables[[1]]
+actual_col_names <- data[1, ]
+colnames(data) <- actual_col_names
+data <- data[-1, ]
+head(data, 3)
+
+# Checking variable types (from lab 4 instruction)
+data$Votes <- as.numeric(data$Votes)
+data$percent_vote <- readr::parse_number(data$`%vote`)
+
+# Clean data (Data cleaning process)
+hall_fame_clean <- data %>%
+  select(name = 2, votes = 4, percent = 5) %>%
+  mutate(name = str_remove(as.character(name), "^X-"), votes = as.numeric(votes), percent = parse_number(as.character(percent)), 
+         year = 2026, inducted = ifelse(percent >= 75, "Yes", "No")) %>%
+  filter(!is.na(name), !is.na(votes), !is.na(percent)) %>%
+  select(name, year, votes, percent, inducted)
+hall_fame_clean
+
+# CSV file (creating file)
+write.csv(hall_fame_clean, "HallOfFame_2026 (Jacob).csv", row.names = FALSE)
+```
+
+## Analysis
+
+------------------------------------------------------------------------
+
+For this lab, I used the Baseball Reference Hall of Fame voting page for 2026 (from lab4 instruction slides) and used the `rvest` package to read the overall webpage and extract the HTML tables. After inspecting the scraped tables, I selected the table that contains the Hall of Fame voting results. Since the raw scraped table included a multiple unnecessary rows and columns, I first reassigned the column names using first row of the table and removed that row from the data set (from lab4 instruction slides). By doing so, I selected only required columns for the lab: name, year, votes, percent, inducted. As we can see from the lab4 instruction file, I created a variable called `inducted` which based on Hall of Fame rule that a player must receive at least 75% of the vote (If the percent is greater than or equal to 75, labeled as "Yes", Otherwise, labeled as "No". I also compared the scraped data with the Lahman HallOfFame data set for 2026. The two data sets do not match exactly because Baseball Reference includes the full BBWAA ballot, while the Lahman data set contains official voting records with a different structure. Therefore, differences between the two data sets are expected.
